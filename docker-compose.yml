@@ -1,0 +1,13 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: sqlite:////data/plant_tracking.db
+      UPLOAD_DIR: /data/uploads
+      DATA_DIR: /data
+      STATIC_DIR: /app/static

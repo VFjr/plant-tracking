@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+body {
+  margin: 0;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
