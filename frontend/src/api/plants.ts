@@ -6,6 +6,9 @@ export type Plant = {
   species: string | null;
   location: string | null;
   description: string | null;
+  flush_interval_days: number | null;
+  next_flush_date: string | null;
+  last_flush_date: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -22,6 +25,10 @@ export type PlantUpdate = {
   species?: string | null;
   location?: string | null;
   description?: string | null;
+};
+
+export type PlantScheduleUpdate = {
+  flush_interval_days?: number | null;
 };
 
 export async function fetchPlants(): Promise<Plant[]> {
@@ -41,6 +48,14 @@ export async function createPlant(plant: PlantCreate): Promise<Plant> {
 
 export async function updatePlant(id: number, plant: PlantUpdate): Promise<Plant> {
   const { data } = await api.patch<Plant>(`/api/plants/${id}`, plant);
+  return data;
+}
+
+export async function updatePlantSchedule(
+  id: number,
+  schedule: PlantScheduleUpdate,
+): Promise<Plant> {
+  const { data } = await api.patch<Plant>(`/api/plants/${id}/schedule`, schedule);
   return data;
 }
 

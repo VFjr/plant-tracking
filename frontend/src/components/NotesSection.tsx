@@ -1,16 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 import { createNote, deleteNote, fetchNotes } from "../api/notes";
-
-function formatDateTime(value: string) {
-  return new Date(value).toLocaleString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
+import { formatDateTime } from "../lib/dates";
 
 type NotesSectionProps = {
   plantId: number;

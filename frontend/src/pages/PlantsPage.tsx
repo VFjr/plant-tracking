@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { fetchPlants } from "../api/plants";
+import { FlushStatusBadge } from "../components/FlushStatusBadge";
 
 export function PlantsPage() {
   const { data: plants, isLoading, isError } = useQuery({
@@ -46,7 +47,10 @@ export function PlantsPage() {
                   className="flex items-center justify-between gap-4 px-6 py-4 hover:bg-slate-50"
                 >
                   <div>
-                    <p className="font-medium text-slate-900">{plant.name}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-medium text-slate-900">{plant.name}</p>
+                      <FlushStatusBadge nextFlushDate={plant.next_flush_date} />
+                    </div>
                     <p className="text-sm text-slate-600">
                       {[plant.species, plant.location].filter(Boolean).join(" · ") || "No details yet"}
                     </p>

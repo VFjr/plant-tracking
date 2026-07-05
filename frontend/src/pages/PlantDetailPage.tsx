@@ -5,18 +5,9 @@ import { deletePlant, fetchPlant, updatePlant } from "../api/plants";
 import { ActionLogSection } from "../components/ActionLogSection";
 import { NotesSection } from "../components/NotesSection";
 import { PlantForm } from "../components/PlantForm";
-
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function wasUpdated(createdAt: string, updatedAt: string) {
-  return new Date(updatedAt).getTime() !== new Date(createdAt).getTime();
-}
+import { ScheduleSection } from "../components/ScheduleSection";
+import { formatDate } from "../lib/dates";
+import { wasUpdated } from "../lib/plant";
 
 export function PlantDetailPage() {
   const { id } = useParams();
@@ -152,6 +143,8 @@ export function PlantDetailPage() {
           </dl>
         )}
       </div>
+
+      <ScheduleSection plant={plant} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <NotesSection plantId={plantId} />

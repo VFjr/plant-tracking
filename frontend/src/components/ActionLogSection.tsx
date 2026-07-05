@@ -7,18 +7,7 @@ import {
   deleteAction,
   fetchActions,
 } from "../api/actions";
-
-function todayIsoDate() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
+import { formatDate, todayIsoDate } from "../lib/dates";
 
 type ActionLogSectionProps = {
   plantId: number;
@@ -45,6 +34,8 @@ export function ActionLogSection({ plantId }: ActionLogSectionProps) {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["plants", plantId, "actions"] });
+      queryClient.invalidateQueries({ queryKey: ["plants", plantId] });
+      queryClient.invalidateQueries({ queryKey: ["plants"] });
       setNotes("");
       setError(null);
     },
@@ -55,6 +46,8 @@ export function ActionLogSection({ plantId }: ActionLogSectionProps) {
     mutationFn: deleteAction,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["plants", plantId, "actions"] });
+      queryClient.invalidateQueries({ queryKey: ["plants", plantId] });
+      queryClient.invalidateQueries({ queryKey: ["plants"] });
     },
   });
 

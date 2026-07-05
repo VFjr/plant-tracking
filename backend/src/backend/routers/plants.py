@@ -1,31 +1,34 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlmodel import Session, select
 
 from backend.db import get_session
 from backend.models.note import Note, NoteCreate, NoteRead
-from backend.models.plant import Plant, PlantCreate, PlantRead, PlantUpdate, utcnow
+from backend.models.plant import Plant, PlantCreate, PlantRead, PlantScheduleUpdate, PlantUpdate, utcnow
 from backend.routers.deps import get_plant_or_404
+from backend.services.schedule import apply_schedule_update, plant_to_read
 
 router = APIRouter(prefix="/api/plants", tags=["plants"])
 
 
 @router.get("", response_model=list[PlantRead])
-def list_plants(session: Session = Depends(get_session)) -> list[Plant]:
-    return list(session.exec(select(Plant).order_by(Plant.name)).all())
+def list_plants(session: Session = Depends(get_session)) -> list[PlantRead]:
+    plants = list(session.exec(select(Plant).order_by(Plant.name)).all())
+    return [plant_to_read(plant, session) for plant in plants]
 
 
 @router.post("", response_model=PlantRead, status_code=status.HTTP_201_CREATED)
-def create_plant(plant_in: PlantCreate, session: Session = Depends(get_session)) -> Plant:
+def create_plant(plant_in: PlantCreate, session: Session = Depends(get_session)) -> PlantRead:
     plant = Plant.model_validate(plant_in)
     session.add(plant)
     session.commit()
     session.refresh(plant)
-    return plant
+    return plant_to_read(plant, session)
 
 
 @router.get("/{plant_id}", response_model=PlantRead)
-def get_plant(plant_id: int, session: Session = Depends(get_session)) -> Plant:
-    return get_plant_or_404(session, plant_id)
+def get_plant(plant_id: int, session: Session = Depends(get_session)) -> PlantRead:
+    plant = get_plant_or_404(session, plant_id)
+    return plant_to_read(plant, session)
 
 
 @router.patch("/{plant_id}", response_model=PlantRead)
@@ -33,17 +36,34 @@ def update_plant(
     plant_id: int,
     plant_in: PlantUpdate,
     session: Session = Depends(get_session),
-) -> Plant:
+) -> PlantRead:
     plant = get_plant_or_404(session, plant_id)
     updates = plant_in.model_dump(exclude_unset=True)
     if not updates:
-        return plant
+        return plant_to_read(plant, session)
     plant.sqlmodel_update(updates)
     plant.updated_at = utcnow()
     session.add(plant)
     session.commit()
     session.refresh(plant)
-    return plant
+    return plant_to_read(plant, session)
+
+
+@router.patch("/{plant_id}/schedule", response_model=PlantRead)
+def update_plant_schedule(
+    plant_id: int,
+    schedule_in: PlantScheduleUpdate,
+    session: Session = Depends(get_session),
+) -> PlantRead:
+    plant = get_plant_or_404(session, plant_id)
+    if not schedule_in.model_dump(exclude_unset=True):
+        return plant_to_read(plant, session)
+    apply_schedule_update(plant, schedule_in, session)
+    plant.updated_at = utcnow()
+    session.add(plant)
+    session.commit()
+    session.refresh(plant)
+    return plant_to_read(plant, session)
 
 
 @router.delete("/{plant_id}", status_code=status.HTTP_204_NO_CONTENT)

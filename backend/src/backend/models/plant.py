@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from pydantic import field_validator
 from sqlmodel import Field, SQLModel
@@ -29,6 +29,8 @@ class Plant(SQLModel, table=True):
     species: str | None = None
     location: str | None = None
     description: str | None = None
+    flush_interval_days: int | None = Field(default=None, ge=1)
+    next_flush_date: date | None = None
     created_at: datetime = Field(default_factory=utcnow, sa_column=utc_datetime_column())
     updated_at: datetime = Field(default_factory=utcnow, sa_column=utc_datetime_column())
 
@@ -57,11 +59,18 @@ class PlantUpdate(SQLModel):
         return _strip_optional_name(value)
 
 
+class PlantScheduleUpdate(SQLModel):
+    flush_interval_days: int | None = Field(default=None, ge=1)
+
+
 class PlantRead(SQLModel):
     id: int
     name: str
     species: str | None
     location: str | None
     description: str | None
+    flush_interval_days: int | None
+    next_flush_date: date | None
+    last_flush_date: date | None = None
     created_at: datetime
     updated_at: datetime
