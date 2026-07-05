@@ -28,6 +28,7 @@ class Plant(SQLModel, table=True):
     name: str = Field(min_length=1)
     species: str | None = None
     location: str | None = None
+    description: str | None = None
     created_at: datetime = Field(default_factory=utcnow, sa_column=utc_datetime_column())
     updated_at: datetime = Field(default_factory=utcnow, sa_column=utc_datetime_column())
 
@@ -36,6 +37,7 @@ class PlantCreate(SQLModel):
     name: str = Field(min_length=1)
     species: str | None = None
     location: str | None = None
+    description: str | None = None
 
     @field_validator("name")
     @classmethod
@@ -47,6 +49,7 @@ class PlantUpdate(SQLModel):
     name: str | None = Field(default=None, min_length=1)
     species: str | None = None
     location: str | None = None
+    description: str | None = None
 
     @field_validator("name")
     @classmethod
@@ -59,5 +62,6 @@ class PlantRead(SQLModel):
     name: str
     species: str | None
     location: str | None
+    description: str | None
     created_at: datetime
     updated_at: datetime

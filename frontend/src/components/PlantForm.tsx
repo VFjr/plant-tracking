@@ -5,6 +5,7 @@ type PlantFormValues = {
   name: string;
   species: string;
   location: string;
+  description: string;
 };
 
 type PlantFormProps = {
@@ -23,6 +24,7 @@ export function PlantForm({
   const [name, setName] = useState(initialValues?.name ?? "");
   const [species, setSpecies] = useState(initialValues?.species ?? "");
   const [location, setLocation] = useState(initialValues?.location ?? "");
+  const [description, setDescription] = useState(initialValues?.description ?? "");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -40,6 +42,7 @@ export function PlantForm({
         name: name.trim(),
         species: species.trim() || null,
         location: location.trim() || null,
+        description: description.trim() || null,
       });
     } catch {
       setError("Something went wrong. Please try again.");
@@ -86,6 +89,20 @@ export function PlantForm({
           type="text"
           value={location}
           onChange={(event) => setLocation(event.target.value)}
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+        />
+      </div>
+
+      <div>
+        <label htmlFor="description" className="mb-1 block text-sm font-medium text-slate-700">
+          Description
+        </label>
+        <textarea
+          id="description"
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+          rows={4}
+          placeholder="Setup, pot type, nutrient mix, general notes..."
           className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
         />
       </div>

@@ -2,16 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
 from backend.db import get_session
+from backend.models.note import Note, NoteCreate, NoteRead
 from backend.models.plant import Plant, PlantCreate, PlantRead, PlantUpdate, utcnow
+from backend.routers.deps import get_plant_or_404
 
 router = APIRouter(prefix="/api/plants", tags=["plants"])
-
-
-def _get_plant_or_404(session: Session, plant_id: int) -> Plant:
-    plant = session.get(Plant, plant_id)
-    if plant is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plant not found")
-    return plant
 
 
 @router.get("", response_model=list[PlantRead])
@@ -30,7 +25,7 @@ def create_plant(plant_in: PlantCreate, session: Session = Depends(get_session))
 
 @router.get("/{plant_id}", response_model=PlantRead)
 def get_plant(plant_id: int, session: Session = Depends(get_session)) -> Plant:
-    return _get_plant_or_404(session, plant_id)
+    return get_plant_or_404(session, plant_id)
 
 
 @router.patch("/{plant_id}", response_model=PlantRead)
@@ -39,7 +34,7 @@ def update_plant(
     plant_in: PlantUpdate,
     session: Session = Depends(get_session),
 ) -> Plant:
-    plant = _get_plant_or_404(session, plant_id)
+    plant = get_plant_or_404(session, plant_id)
     updates = plant_in.model_dump(exclude_unset=True)
     if not updates:
         return plant
@@ -53,6 +48,33 @@ def update_plant(
 
 @router.delete("/{plant_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_plant(plant_id: int, session: Session = Depends(get_session)) -> None:
-    plant = _get_plant_or_404(session, plant_id)
+    plant = get_plant_or_404(session, plant_id)
     session.delete(plant)
     session.commit()
+
+
+plants_router = router
+
+
+@router.get("/{plant_id}/notes", response_model=list[NoteRead])
+def list_notes(plant_id: int, session: Session = Depends(get_session)) -> list[Note]:
+    get_plant_or_404(session, plant_id)
+    return list(
+        session.exec(
+            select(Note).where(Note.plant_id == plant_id).order_by(Note.created_at.desc())
+        ).all()
+    )
+
+
+@router.post("/{plant_id}/notes", response_model=NoteRead, status_code=status.HTTP_201_CREATED)
+def create_note(
+    plant_id: int,
+    note_in: NoteCreate,
+    session: Session = Depends(get_session),
+) -> Note:
+    get_plant_or_404(session, plant_id)
+    note = Note(plant_id=plant_id, content=note_in.content)
+    session.add(note)
+    session.commit()
+    session.refresh(note)
+    return note

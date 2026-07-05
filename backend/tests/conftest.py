@@ -7,6 +7,8 @@ from sqlmodel.pool import StaticPool
 
 from backend.db import get_session
 from backend.main import app
+from backend.models.action import ActionEntry  # noqa: F401
+from backend.models.note import Note  # noqa: F401
 from backend.models.plant import Plant  # noqa: F401
 
 
@@ -20,6 +22,13 @@ def session_fixture() -> Generator[Session]:
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
         yield session
+
+
+@pytest.fixture(name="plant")
+def plant_fixture(client: TestClient) -> dict:
+    response = client.post("/api/plants", json={"name": "Test Plant"})
+    assert response.status_code == 201
+    return response.json()
 
 
 @pytest.fixture(name="client")

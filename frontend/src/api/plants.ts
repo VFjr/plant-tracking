@@ -5,6 +5,7 @@ export type Plant = {
   name: string;
   species: string | null;
   location: string | null;
+  description: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -13,12 +14,14 @@ export type PlantCreate = {
   name: string;
   species?: string | null;
   location?: string | null;
+  description?: string | null;
 };
 
 export type PlantUpdate = {
   name?: string;
   species?: string | null;
   location?: string | null;
+  description?: string | null;
 };
 
 export async function fetchPlants(): Promise<Plant[]> {

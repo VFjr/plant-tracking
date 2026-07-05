@@ -7,6 +7,9 @@ from fastapi.staticfiles import StaticFiles
 
 from backend.config import settings
 from backend.db import init_db
+from backend.routers.actions import router as actions_router
+from backend.routers.notes import router as notes_router
+from backend.routers.plant_actions import router as plant_actions_router
 from backend.routers.plants import router as plants_router
 
 
@@ -27,6 +30,9 @@ app.add_middleware(
 )
 
 app.include_router(plants_router)
+app.include_router(plant_actions_router)
+app.include_router(notes_router)
+app.include_router(actions_router)
 
 
 @app.get("/api/health")

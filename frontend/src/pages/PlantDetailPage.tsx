@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { deletePlant, fetchPlant, updatePlant } from "../api/plants";
+import { ActionLogSection } from "../components/ActionLogSection";
+import { NotesSection } from "../components/NotesSection";
 import { PlantForm } from "../components/PlantForm";
 
 function formatDate(value: string) {
@@ -85,52 +87,53 @@ export function PlantDetailPage() {
         </div>
         <div className="flex flex-col items-end gap-2">
           <div className="flex items-center gap-2">
-          {!isEditing && (
+            {!isEditing && (
+              <button
+                type="button"
+                onClick={() => setIsEditing(true)}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Edit
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => setIsEditing(true)}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              onClick={() => {
+                if (window.confirm(`Delete ${plant.name}?`)) {
+                  deleteMutation.mutate();
+                }
+              }}
+              disabled={deleteMutation.isPending}
+              className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
             >
-              Edit
+              Delete
             </button>
-          )}
-          <button
-            type="button"
-            onClick={() => {
-              if (window.confirm(`Delete ${plant.name}?`)) {
-                deleteMutation.mutate();
-              }
-            }}
-            disabled={deleteMutation.isPending}
-            className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
-          >
-            Delete
-          </button>
           </div>
           {deleteError && <p className="text-sm text-red-600">{deleteError}</p>}
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Details</h3>
-          {isEditing ? (
-            <div className="mt-4">
-              <PlantForm
-                initialValues={{
-                  name: plant.name,
-                  species: plant.species ?? "",
-                  location: plant.location ?? "",
-                }}
-                submitLabel="Save changes"
-                onSubmit={async (values) => {
-                  await updateMutation.mutateAsync(values);
-                }}
-                onCancel={() => setIsEditing(false)}
-              />
-            </div>
-          ) : (
-            <dl className="mt-4 space-y-3 text-sm">
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Details</h3>
+        {isEditing ? (
+          <div className="mt-4">
+            <PlantForm
+              initialValues={{
+                name: plant.name,
+                species: plant.species ?? "",
+                location: plant.location ?? "",
+                description: plant.description ?? "",
+              }}
+              submitLabel="Save changes"
+              onSubmit={async (values) => {
+                await updateMutation.mutateAsync(values);
+              }}
+              onCancel={() => setIsEditing(false)}
+            />
+          </div>
+        ) : (
+          <dl className="mt-4 space-y-4 text-sm">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <dt className="text-slate-500">Species</dt>
                 <dd className="font-medium text-slate-900">{plant.species || "—"}</dd>
@@ -139,20 +142,20 @@ export function PlantDetailPage() {
                 <dt className="text-slate-500">Location</dt>
                 <dd className="font-medium text-slate-900">{plant.location || "—"}</dd>
               </div>
-            </dl>
-          )}
-        </div>
+            </div>
+            <div>
+              <dt className="text-slate-500">Description</dt>
+              <dd className="mt-1 whitespace-pre-wrap font-medium text-slate-900">
+                {plant.description || "—"}
+              </dd>
+            </div>
+          </dl>
+        )}
+      </div>
 
-        <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-600">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Coming soon
-          </h3>
-          <ul className="mt-4 list-disc space-y-2 pl-5">
-            <li>Notes and action log (Phase 2)</li>
-            <li>Flush and refill schedule (Phase 3)</li>
-            <li>Photos (Phase 4)</li>
-          </ul>
-        </div>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <NotesSection plantId={plantId} />
+        <ActionLogSection plantId={plantId} />
       </div>
     </section>
   );

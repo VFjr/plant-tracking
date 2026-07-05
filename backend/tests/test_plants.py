@@ -4,13 +4,19 @@ from fastapi.testclient import TestClient
 def test_create_and_get_plant(client: TestClient) -> None:
     response = client.post(
         "/api/plants",
-        json={"name": "Monstera", "species": "Monstera deliciosa", "location": "Living room"},
+        json={
+            "name": "Monstera",
+            "species": "Monstera deliciosa",
+            "location": "Living room",
+            "description": "LECA in glass jar, 50% strength fertilizer",
+        },
     )
     assert response.status_code == 201
     data = response.json()
     assert data["name"] == "Monstera"
     assert data["species"] == "Monstera deliciosa"
     assert data["location"] == "Living room"
+    assert data["description"] == "LECA in glass jar, 50% strength fertilizer"
     assert "id" in data
 
     plant_id = data["id"]

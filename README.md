@@ -61,7 +61,7 @@ data/         Runtime data (gitignored)
 
 - [x] Phase 0 — Scaffolding, health check, Docker
 - [x] Phase 1 — Plants CRUD
-- [ ] Phase 2 — Notes and action log
+- [x] Phase 2 — Notes and action log
 - [ ] Phase 3 — Flush/refill scheduling
 - [ ] Phase 4 — Photos
 - [ ] Phase 5 — Dashboard
