@@ -63,6 +63,6 @@ data/         Runtime data (gitignored)
 - [x] Phase 1 — Plants CRUD
 - [x] Phase 2 — Notes and action log
 - [x] Phase 3 — Flush scheduling
-- [ ] Phase 4 — Photos
+- [x] Phase 4 — Photos
 - [ ] Phase 5 — Dashboard
 - [ ] Phase 6 — Proxmox deployment notes

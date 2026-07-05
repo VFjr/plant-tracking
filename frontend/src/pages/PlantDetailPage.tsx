@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { deletePlant, fetchPlant, updatePlant } from "../api/plants";
 import { ActionLogSection } from "../components/ActionLogSection";
 import { NotesSection } from "../components/NotesSection";
+import { PhotosSection } from "../components/PhotosSection";
 import { PlantForm } from "../components/PlantForm";
 import { ScheduleSection } from "../components/ScheduleSection";
 import { formatDate } from "../lib/dates";
@@ -145,6 +146,8 @@ export function PlantDetailPage() {
       </div>
 
       <ScheduleSection plant={plant} />
+
+      <PhotosSection plantId={plantId} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <NotesSection plantId={plantId} />

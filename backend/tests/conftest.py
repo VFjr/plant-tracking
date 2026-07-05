@@ -9,7 +9,15 @@ from backend.db import get_session
 from backend.main import app
 from backend.models.action import ActionEntry  # noqa: F401
 from backend.models.note import Note  # noqa: F401
+from backend.models.photo import Photo  # noqa: F401
 from backend.models.plant import Plant  # noqa: F401
+
+
+@pytest.fixture(autouse=True)
+def upload_dir_tmp(tmp_path, monkeypatch):
+    upload = tmp_path / "uploads"
+    upload.mkdir()
+    monkeypatch.setattr("backend.config.settings.upload_dir", str(upload))
 
 
 @pytest.fixture(name="session")

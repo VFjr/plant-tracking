@@ -5,6 +5,7 @@ from backend.db import get_session
 from backend.models.note import Note, NoteCreate, NoteRead
 from backend.models.plant import Plant, PlantCreate, PlantRead, PlantScheduleUpdate, PlantUpdate, utcnow
 from backend.routers.deps import get_plant_or_404
+from backend.services.photos import delete_plant_photo_dir
 from backend.services.schedule import apply_schedule_update, plant_to_read
 
 router = APIRouter(prefix="/api/plants", tags=["plants"])
@@ -69,6 +70,7 @@ def update_plant_schedule(
 @router.delete("/{plant_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_plant(plant_id: int, session: Session = Depends(get_session)) -> None:
     plant = get_plant_or_404(session, plant_id)
+    delete_plant_photo_dir(plant_id)
     session.delete(plant)
     session.commit()
 
