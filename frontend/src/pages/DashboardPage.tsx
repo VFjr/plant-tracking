@@ -1,10 +1,167 @@
-export function DashboardPage() {
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { createAction } from "../api/actions";
+import { type DashboardTask, fetchDashboard } from "../api/dashboard";
+import { formatDate, formatDaysAgo, todayIsoDate } from "../lib/dates";
+
+function TaskRow({
+  task,
+  variant,
+  onLogFlush,
+  isLogging,
+}: {
+  task: DashboardTask;
+  variant: "overdue" | "due_today";
+  onLogFlush: (plantId: number) => void;
+  isLogging: boolean;
+}) {
+  const statusLabel = variant === "overdue" ? "Flush overdue" : "Flush due today";
+  const detail =
+    variant === "overdue"
+      ? `${statusLabel} · ${formatDaysAgo(task.due_date)} · due ${formatDate(task.due_date)}`
+      : `${statusLabel} · due ${formatDate(task.due_date)}`;
+
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-semibold">Dashboard</h2>
-      <p className="mt-2 text-slate-600">
-        Overdue and due-today tasks will appear here in a later phase.
-      </p>
+    <li className="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <Link
+          to={`/plants/${task.plant_id}`}
+          className="font-medium text-slate-900 hover:text-emerald-700"
+        >
+          {task.plant_name}
+        </Link>
+        <p className="mt-1 text-sm text-slate-600">{detail}</p>
+      </div>
+      <button
+        type="button"
+        onClick={() => onLogFlush(task.plant_id)}
+        disabled={isLogging}
+        className="shrink-0 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+      >
+        {isLogging ? "Logging..." : "Log flush"}
+      </button>
+    </li>
+  );
+}
+
+function TaskSection({
+  title,
+  description,
+  tasks,
+  variant,
+  onLogFlush,
+  loggingPlantId,
+}: {
+  title: string;
+  description: string;
+  tasks: DashboardTask[];
+  variant: "overdue" | "due_today";
+  onLogFlush: (plantId: number) => void;
+  loggingPlantId: number | null;
+}) {
+  if (tasks.length === 0) {
+    return null;
+  }
+
+  const borderClass = variant === "overdue" ? "border-red-200" : "border-amber-200";
+  const titleClass = variant === "overdue" ? "text-red-900" : "text-amber-900";
+
+  return (
+    <section className={`rounded-xl border ${borderClass} bg-white shadow-sm`}>
+      <div className="border-b border-slate-200 px-6 py-4">
+        <h3 className={`text-sm font-semibold uppercase tracking-wide ${titleClass}`}>{title}</h3>
+        <p className="mt-1 text-sm text-slate-600">{description}</p>
+      </div>
+      <ul className="divide-y divide-slate-200">
+        {tasks.map((task) => (
+          <TaskRow
+            key={task.plant_id}
+            task={task}
+            variant={variant}
+            onLogFlush={onLogFlush}
+            isLogging={loggingPlantId === task.plant_id}
+          />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+export function DashboardPage() {
+  const queryClient = useQueryClient();
+  const [loggingPlantId, setLoggingPlantId] = useState<number | null>(null);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["dashboard"],
+    queryFn: fetchDashboard,
+  });
+
+  const logFlushMutation = useMutation({
+    mutationFn: (plantId: number) =>
+      createAction(plantId, {
+        action_type: "flush",
+        performed_at: todayIsoDate(),
+      }),
+    onMutate: (plantId) => {
+      setLoggingPlantId(plantId);
+    },
+    onSuccess: (_action, plantId) => {
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["plants"] });
+      queryClient.invalidateQueries({ queryKey: ["plants", plantId] });
+      queryClient.invalidateQueries({ queryKey: ["plants", plantId, "actions"] });
+    },
+    onSettled: () => {
+      setLoggingPlantId(null);
+    },
+  });
+
+  const overdue = data?.overdue ?? [];
+  const dueToday = data?.due_today ?? [];
+  const isEmpty = !isLoading && !isError && overdue.length === 0 && dueToday.length === 0;
+
+  return (
+    <section className="space-y-6">
+      <div>
+        <h2 className="text-lg font-semibold">Dashboard</h2>
+        <p className="mt-1 text-sm text-slate-600">Flush tasks that are overdue or due today.</p>
+      </div>
+
+      {isLoading && <p className="text-sm text-slate-600">Loading tasks...</p>}
+      {isError && (
+        <p className="text-sm text-red-600">Failed to load dashboard. Is the API running?</p>
+      )}
+
+      {isEmpty && (
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm text-slate-600">Nothing due today. You&apos;re all caught up.</p>
+          <Link to="/plants" className="mt-2 inline-block text-sm font-medium text-emerald-700 hover:underline">
+            View plants
+          </Link>
+        </div>
+      )}
+
+      {!isLoading && !isError && (
+        <>
+          <TaskSection
+            title="Overdue"
+            description="These flushes were due before today."
+            tasks={overdue}
+            variant="overdue"
+            onLogFlush={(plantId) => logFlushMutation.mutate(plantId)}
+            loggingPlantId={loggingPlantId}
+          />
+          <TaskSection
+            title="Due today"
+            description="These flushes are due today."
+            tasks={dueToday}
+            variant="due_today"
+            onLogFlush={(plantId) => logFlushMutation.mutate(plantId)}
+            loggingPlantId={loggingPlantId}
+          />
+        </>
+      )}
     </section>
   );
 }

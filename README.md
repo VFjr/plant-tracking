@@ -64,5 +64,5 @@ data/         Runtime data (gitignored)
 - [x] Phase 2 — Notes and action log
 - [x] Phase 3 — Flush scheduling
 - [x] Phase 4 — Photos
-- [ ] Phase 5 — Dashboard
+- [x] Phase 5 — Dashboard
 - [ ] Phase 6 — Proxmox deployment notes

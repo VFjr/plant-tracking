@@ -33,6 +33,7 @@ export function ActionLogSection({ plantId }: ActionLogSectionProps) {
         notes: notes.trim() || null,
       }),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["plants", plantId, "actions"] });
       queryClient.invalidateQueries({ queryKey: ["plants", plantId] });
       queryClient.invalidateQueries({ queryKey: ["plants"] });
@@ -45,6 +46,7 @@ export function ActionLogSection({ plantId }: ActionLogSectionProps) {
   const deleteMutation = useMutation({
     mutationFn: deleteAction,
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["plants", plantId, "actions"] });
       queryClient.invalidateQueries({ queryKey: ["plants", plantId] });
       queryClient.invalidateQueries({ queryKey: ["plants"] });

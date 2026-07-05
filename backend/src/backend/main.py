@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from backend.config import settings
 from backend.db import init_db
 from backend.routers.actions import router as actions_router
+from backend.routers.dashboard import router as dashboard_router
 from backend.routers.notes import router as notes_router
 from backend.routers.photos import router as photos_router
 from backend.routers.plant_actions import router as plant_actions_router
@@ -31,6 +32,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(dashboard_router)
 app.include_router(plants_router)
 app.include_router(plant_actions_router)
 app.include_router(plant_photos_router)

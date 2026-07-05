@@ -29,3 +29,17 @@ export function todayIsoDate(): string {
   const day = now.getDate().toString().padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
+
+/** Whole days from an earlier date to a later one (defaults to today). */
+export function daysSince(isoDate: string, referenceIso: string = todayIsoDate()): number {
+  const from = parseDateValue(isoDate);
+  const to = parseDateValue(referenceIso);
+  const msPerDay = 24 * 60 * 60 * 1000;
+  return Math.round((to.getTime() - from.getTime()) / msPerDay);
+}
+
+/** e.g. "1 day ago" or "18 days ago". */
+export function formatDaysAgo(isoDate: string, referenceIso?: string): string {
+  const days = daysSince(isoDate, referenceIso);
+  return days === 1 ? "1 day ago" : `${days} days ago`;
+}
