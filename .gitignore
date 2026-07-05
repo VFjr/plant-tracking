@@ -223,4 +223,5 @@ frontend/dist/
 
 # Runtime data
 data/
+backups/
 *.db

@@ -19,9 +19,19 @@ export function HealthBanner() {
   if (isError || data?.status !== "ok") {
     return (
       <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
-        API unreachable. Start the backend with <code className="font-mono">make dev-api</code>.
+        API unreachable.
+        {import.meta.env.DEV && (
+          <>
+            {" "}
+            Start the backend with <code className="font-mono">make dev-api</code>.
+          </>
+        )}
       </div>
     );
+  }
+
+  if (import.meta.env.PROD) {
+    return null;
   }
 
   return (

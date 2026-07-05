@@ -22,7 +22,7 @@ todos:
     status: pending
   - id: phase-6-deploy
     content: "Phase 6: Docker Compose on Proxmox LXC, volume mounts, LAN access, backup notes in README"
-    status: pending
+    status: completed
   - id: phase-7-reservoir-smart
     content: "Phase 7 (later): Smart reservoir — level % readings, usage estimation, predicted refill dates"
     status: pending
