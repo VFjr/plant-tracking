@@ -12,7 +12,7 @@ todos:
     content: "Phase 2: Note and ActionEntry models, nested API routes, journal UI on plant detail"
     status: pending
   - id: phase-3-scheduling
-    content: "Phase 3: Flush/refill interval fields on Plant, schedule service, auto-advance on logged actions"
+    content: "Phase 3: Flush interval + next_flush_date on Plant, schedule service, auto-advance on FLUSH actions; reservoir refill stays action-log only"
     status: pending
   - id: phase-4-photos
     content: "Phase 4: Photo upload to disk, serve endpoint, gallery UI on plant detail"
@@ -22,6 +22,9 @@ todos:
     status: pending
   - id: phase-6-deploy
     content: "Phase 6: Docker Compose on Proxmox LXC, volume mounts, LAN access, backup notes in README"
+    status: pending
+  - id: phase-7-reservoir-smart
+    content: "Phase 7 (later): Smart reservoir — level % readings, usage estimation, predicted refill dates"
     status: pending
 isProject: false
 ---
@@ -222,30 +225,54 @@ class ActionEntry(SQLModel, table=True):
 
 ---
 
-## Phase 3 — Flushing and reservoir refill scheduling
+## Phase 3 — Flush scheduling (reservoir refill: log only for now)
 
-Goal: set intervals and next-due dates; auto-advance when actions are logged.
+Goal: reminders for **flush** only. Reservoir refills stay in the action log (Phase 2) with no interval or due-date logic yet.
+
+### Rationale
+
+- **Flush** — predictable interval (e.g. every 7 days); interval + next-due date + reminders fit well.
+- **Reservoir refill** — usage varies; smart tracking (level % over time, full-refill events, estimated depletion) is useful later but not needed soon. You can see reservoir levels yourself. For now, log `reservoir_refill` actions as history only.
 
 ### Extend `Plant` model
 
 ```python
 flush_interval_days: int | None = None
-reservoir_refill_interval_days: int | None = None
 next_flush_date: date | None = None
-next_reservoir_refill_date: date | None = None
+# No reservoir_refill_interval_days or next_reservoir_refill_date in this phase
 ```
 
-### Business logic ([`backend/app/services/schedule.py`](backend/app/services/schedule.py))
+### Business logic ([`backend/src/backend/services/schedule.py`](backend/src/backend/services/schedule.py))
 
-- When user sets interval + optional anchor date → compute `next_*_date`
-- When a `FLUSH` or `RESERVOIR_REFILL` action is logged:
-  - Set `next_*_date = performed_at + interval_days` (if interval is set)
-- Expose `PATCH /api/plants/{id}/schedule` for editing intervals/dates directly
+- When user sets flush interval + optional anchor/last-flush date → compute `next_flush_date`
+- When a `FLUSH` action is logged → `next_flush_date = performed_at + flush_interval_days` (if interval set)
+- `RESERVOIR_REFILL` and `OTHER` actions do **not** change schedule
+- Expose `PATCH /api/plants/{id}/schedule` for flush interval and `next_flush_date` (manual override)
 
 ### Frontend
 
-- Schedule section on plant detail: interval inputs, next-due date display, manual override
-- Visual indicator (badge) on plant list when flush/refill is due or overdue
+- **Schedule** section on plant detail: flush interval (days), next flush date, manual override
+- Badge on plant list when flush is **overdue** or **due today**
+- Action log unchanged — still log reservoir refills; no schedule UI for refill
+
+### Phase 5 dashboard (preview)
+
+Dashboard will only surface **flush** tasks until smart reservoir phase exists.
+
+---
+
+## Phase 7 (much later) — Smart reservoir tracking
+
+Goal: estimate when refill is needed from observed usage, not a fixed interval.
+
+### Ideas (not scoped for implementation yet)
+
+- Log **full refill** events (already possible via action log; may add explicit action subtype or flag)
+- Log **level readings** at rough times: e.g. “~80%”, “~50%” as dated entries
+- Backend estimates consumption rate between readings → predicted `next_reservoir_refill_date`
+- Optional reminders when estimate crosses a threshold
+
+Defer until flush scheduling + photos + dashboard are solid.
 
 ---
 
@@ -288,7 +315,7 @@ Goal: main page answering "what do I need to do?"
 
 ### API
 
-`GET /api/dashboard` returns:
+`GET /api/dashboard` returns flush tasks only (reservoir added in Phase 7 when estimates exist):
 
 ```json
 {
@@ -296,12 +323,12 @@ Goal: main page answering "what do I need to do?"
     { "plant_id": 1, "plant_name": "Monstera", "task": "flush", "due_date": "2026-07-01" }
   ],
   "due_today": [
-    { "plant_id": 2, "plant_name": "Pothos", "task": "reservoir_refill", "due_date": "2026-07-04" }
+    { "plant_id": 2, "plant_name": "Pothos", "task": "flush", "due_date": "2026-07-04" }
   ]
 }
 ```
 
-Query logic: for each plant with a non-null `next_flush_date` or `next_reservoir_refill_date`, classify as overdue (`< today`) or due today (`== today`). Sort overdue by oldest first.
+Query logic: for each plant with a non-null `next_flush_date`, classify as overdue (`< today`) or due today (`== today`). Sort overdue by oldest first.
 
 ### Frontend
 
@@ -314,8 +341,8 @@ flowchart TD
   Dash --> Today[Due today]
   Overdue --> PlantDetail[Plant detail]
   Today --> PlantDetail
-  PlantDetail --> LogAction[Log flush/refill]
-  LogAction --> AdvanceDate[Recompute next due date]
+  PlantDetail --> LogFlush[Log flush]
+  LogFlush --> AdvanceDate[Recompute next flush date]
   AdvanceDate --> Dash
 ```
 
@@ -355,7 +382,7 @@ Goal: run reliably on your home server, LAN-only.
 | 0 | Scaffolding, health check, Docker | ~2–3 hrs |
 | 1 | Plants CRUD | ~2 hrs |
 | 2 | Notes + action log | ~2 hrs |
-| 3 | Flush/refill scheduling | ~2–3 hrs |
+| 3 | Flush scheduling + reminders | ~2 hrs |
 | 4 | Photo upload/view | ~2–3 hrs |
 | 5 | Dashboard | ~1–2 hrs |
 | 6 | Proxmox deploy + backup notes | ~1 hr |
