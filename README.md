@@ -28,9 +28,14 @@ make test
 
 # Apply migrations (when they exist)
 make migrate
+
+# Wipe local SQLite DB and recreate schema from migrations
+make reset-db
 ```
 
 Copy `.env.example` to `.env` if you want to override defaults.
+
+`make dev-api` runs Alembic migrations automatically before starting the server. Docker does the same on container start.
 
 ## Docker (production on home server)
 
@@ -55,7 +60,7 @@ data/         Runtime data (gitignored)
 ## Phases
 
 - [x] Phase 0 — Scaffolding, health check, Docker
-- [ ] Phase 1 — Plants CRUD
+- [x] Phase 1 — Plants CRUD
 - [ ] Phase 2 — Notes and action log
 - [ ] Phase 3 — Flush/refill scheduling
 - [ ] Phase 4 — Photos

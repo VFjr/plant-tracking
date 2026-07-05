@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from backend.config import settings
 from backend.db import init_db
+from backend.routers.plants import router as plants_router
 
 
 @asynccontextmanager
@@ -24,6 +25,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(plants_router)
 
 
 @app.get("/api/health")
