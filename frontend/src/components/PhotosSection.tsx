@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { deletePhoto, fetchPhotos, photoFileUrl, uploadPhoto } from "../api/photos";
 import { formatDate } from "../lib/dates";
 
@@ -56,6 +56,21 @@ export function PhotosSection({ plantId }: PhotosSectionProps) {
 
   const lightboxPhoto = photos?.find((photo) => photo.id === lightboxPhotoId) ?? null;
 
+  useEffect(() => {
+    if (lightboxPhotoId === null) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setLightboxPhotoId(null);
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [lightboxPhotoId]);
+
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Photos</h3>
@@ -69,7 +84,7 @@ export function PhotosSection({ plantId }: PhotosSectionProps) {
             id="photo-file"
             name="photo-file"
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
             className="w-full text-sm text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-emerald-800 hover:file:bg-emerald-100"
             required
           />
@@ -119,7 +134,7 @@ export function PhotosSection({ plantId }: PhotosSectionProps) {
         {!isLoading && !isError && photos && photos.length > 0 && (
           <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {photos.map((photo) => (
-              <li key={photo.id} className="group relative overflow-hidden rounded-lg border border-slate-200">
+              <li key={photo.id} className="relative overflow-hidden rounded-lg border border-slate-200">
                 <button
                   type="button"
                   onClick={() => setLightboxPhotoId(photo.id)}
@@ -145,7 +160,7 @@ export function PhotosSection({ plantId }: PhotosSectionProps) {
                       deleteMutation.mutate(photo.id);
                     }
                   }}
-                  className="absolute right-2 top-2 rounded bg-white/90 px-2 py-1 text-xs font-medium text-red-700 opacity-0 shadow-sm transition group-hover:opacity-100 hover:bg-white"
+                  className="absolute right-2 top-2 rounded bg-white/95 px-2 py-1 text-xs font-medium text-red-700 shadow-sm hover:bg-white"
                 >
                   Delete
                 </button>
@@ -159,11 +174,6 @@ export function PhotosSection({ plantId }: PhotosSectionProps) {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
           onClick={() => setLightboxPhotoId(null)}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") {
-              setLightboxPhotoId(null);
-            }
-          }}
           role="presentation"
         >
           <div

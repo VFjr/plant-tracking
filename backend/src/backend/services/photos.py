@@ -3,15 +3,24 @@ import uuid
 from io import BytesIO
 from pathlib import Path
 
+import pillow_heif
 from fastapi import HTTPException, UploadFile, status
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from backend.config import settings
 
+pillow_heif.register_heif_opener()
+
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 MAX_IMAGE_DIMENSION = 1920
 JPEG_QUALITY = 85
-ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
+ALLOWED_CONTENT_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/heic",
+    "image/heif",
+}
 
 
 def plant_photo_dir(plant_id: int) -> Path:
@@ -67,7 +76,7 @@ async def read_and_validate_upload(file: UploadFile) -> bytes:
     return data
 
 
-def save_optimized_photo(plant_id: int, original_filename: str, image_data: bytes) -> str:
+def save_optimized_photo(plant_id: int, image_data: bytes) -> str:
     optimized = optimize_image(image_data)
     stored_name = f"{uuid.uuid4().hex}.jpg"
     dest_dir = plant_photo_dir(plant_id)

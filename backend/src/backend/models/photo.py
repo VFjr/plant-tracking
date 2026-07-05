@@ -20,7 +20,6 @@ class PhotoRead(SQLModel):
     id: int
     plant_id: int
     filename: str
-    stored_name: str
     caption: str | None
     taken_at: date | None
     uploaded_at: datetime

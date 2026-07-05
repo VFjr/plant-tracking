@@ -34,7 +34,7 @@ async def upload_photo(
     get_plant_or_404(session, plant_id)
     image_data = await read_and_validate_upload(file)
     original_filename = file.filename or "photo.jpg"
-    stored_name = save_optimized_photo(plant_id, original_filename, image_data)
+    stored_name = save_optimized_photo(plant_id, image_data)
 
     trimmed_caption = caption.strip() if caption else None
     if trimmed_caption == "":

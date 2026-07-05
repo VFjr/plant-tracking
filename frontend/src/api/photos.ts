@@ -4,7 +4,6 @@ export type Photo = {
   id: number;
   plant_id: number;
   filename: string;
-  stored_name: string;
   caption: string | null;
   taken_at: string | null;
   uploaded_at: string;

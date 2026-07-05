@@ -49,13 +49,36 @@ def test_upload_and_list_photo(client: TestClient, plant: dict) -> None:
         taken_at="2026-07-01",
     )
     assert photo["filename"] == "plant.jpg"
-    assert photo["stored_name"].endswith(".jpg")
+    assert "stored_name" not in photo
     assert photo["caption"] == "New growth"
     assert photo["taken_at"] == "2026-07-01"
 
     response = client.get(f"/api/plants/{plant['id']}/photos")
     assert response.status_code == 200
     assert len(response.json()) == 1
+
+
+def test_upload_heic_image(client: TestClient, plant: dict) -> None:
+    pillow_heif = pytest.importorskip("pillow_heif")
+    pillow_heif.register_heif_opener()
+
+    img = Image.new("RGB", (800, 600), color=(90, 140, 180))
+    buf = BytesIO()
+    img.save(buf, format="HEIF")
+    heic_bytes = buf.getvalue()
+
+    photo = upload_test_photo(
+        client,
+        plant["id"],
+        content=heic_bytes,
+        filename="iphone.heic",
+        content_type="image/heic",
+    )
+    assert photo["filename"] == "iphone.heic"
+
+    file_response = client.get(f"/api/photos/{photo['id']}/file")
+    assert file_response.status_code == 200
+    assert file_response.headers["content-type"] == "image/jpeg"
 
 
 def test_upload_resizes_large_image(client: TestClient, plant: dict) -> None:
