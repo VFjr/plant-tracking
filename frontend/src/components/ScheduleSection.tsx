@@ -25,6 +25,7 @@ export function ScheduleSection({ plant }: ScheduleSectionProps) {
     onSuccess: (updated) => {
       queryClient.setQueryData(["plants", plant.id], updated);
       queryClient.invalidateQueries({ queryKey: ["plants"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       setIntervalDays(updated.flush_interval_days?.toString() ?? "");
       setError(null);
     },
