@@ -5,6 +5,25 @@ import { createAction } from "../api/actions";
 import { type DashboardTask, fetchDashboard } from "../api/dashboard";
 import { formatDate, formatDaysAgo, todayIsoDate } from "../lib/dates";
 
+type TaskVariant = "overdue" | "due_today" | "needs_attention";
+
+function taskDetail(task: DashboardTask, variant: TaskVariant): string {
+  if (variant === "needs_attention") {
+    if (!task.has_been_flushed) {
+      return task.has_flush_interval
+        ? "Needs first flush"
+        : "Needs first flush · No flush interval set";
+    }
+    return "Needs flush interval";
+  }
+
+  if (variant === "overdue") {
+    return `Flush overdue · ${formatDaysAgo(task.due_date)} · due ${formatDate(task.due_date)}`;
+  }
+
+  return `Flush due today · due ${formatDate(task.due_date)}`;
+}
+
 function TaskRow({
   task,
   variant,
@@ -12,16 +31,11 @@ function TaskRow({
   isLogging,
 }: {
   task: DashboardTask;
-  variant: "overdue" | "due_today";
+  variant: TaskVariant;
   onLogFlush: (plantId: number) => void;
   isLogging: boolean;
 }) {
-  const statusLabel = variant === "overdue" ? "Flush overdue" : "Flush due today";
-  const detail =
-    variant === "overdue"
-      ? `${statusLabel} · ${formatDaysAgo(task.due_date)} · due ${formatDate(task.due_date)}`
-      : `${statusLabel} · due ${formatDate(task.due_date)}`;
-
+  const detail = taskDetail(task, variant);
   return (
     <li className="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
@@ -56,7 +70,7 @@ function TaskSection({
   title: string;
   description: string;
   tasks: DashboardTask[];
-  variant: "overdue" | "due_today";
+  variant: TaskVariant;
   onLogFlush: (plantId: number) => void;
   loggingPlantId: number | null;
 }) {
@@ -64,8 +78,18 @@ function TaskSection({
     return null;
   }
 
-  const borderClass = variant === "overdue" ? "border-red-200" : "border-amber-200";
-  const titleClass = variant === "overdue" ? "text-red-900" : "text-amber-900";
+  const borderClass =
+    variant === "overdue"
+      ? "border-red-200"
+      : variant === "needs_attention"
+        ? "border-slate-200"
+        : "border-amber-200";
+  const titleClass =
+    variant === "overdue"
+      ? "text-red-900"
+      : variant === "needs_attention"
+        ? "text-slate-800"
+        : "text-amber-900";
 
   return (
     <section className={`rounded-xl border ${borderClass} bg-white shadow-sm`}>
@@ -119,13 +143,21 @@ export function DashboardPage() {
 
   const overdue = data?.overdue ?? [];
   const dueToday = data?.due_today ?? [];
-  const isEmpty = !isLoading && !isError && overdue.length === 0 && dueToday.length === 0;
+  const needsAttention = data?.needs_attention ?? [];
+  const isEmpty =
+    !isLoading &&
+    !isError &&
+    overdue.length === 0 &&
+    dueToday.length === 0 &&
+    needsAttention.length === 0;
 
   return (
     <section className="space-y-6">
       <div>
         <h2 className="text-lg font-semibold">Dashboard</h2>
-        <p className="mt-1 text-sm text-slate-600">Flush tasks that are overdue or due today.</p>
+        <p className="mt-1 text-sm text-slate-600">
+          Flush tasks that are overdue, due today, or still need setup.
+        </p>
       </div>
 
       {isLoading && <p className="text-sm text-slate-600">Loading tasks...</p>}
@@ -157,6 +189,14 @@ export function DashboardPage() {
             description="These flushes are due today."
             tasks={dueToday}
             variant="due_today"
+            onLogFlush={(plantId) => logFlushMutation.mutate(plantId)}
+            loggingPlantId={loggingPlantId}
+          />
+          <TaskSection
+            title="Needs attention"
+            description="These plants still need a first flush or a flush interval."
+            tasks={needsAttention}
+            variant="needs_attention"
             onLogFlush={(plantId) => logFlushMutation.mutate(plantId)}
             loggingPlantId={loggingPlantId}
           />
