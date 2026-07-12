@@ -7,10 +7,12 @@ from sqlmodel import SQLModel
 class DashboardTask(SQLModel):
     plant_id: int
     plant_name: str
-    task: Literal["flush"]
+    task: Literal["flush", "monitor"]
     due_date: date
-    has_flush_interval: bool
-    has_been_flushed: bool
+    has_flush_interval: bool | None = None
+    has_been_flushed: bool | None = None
+    has_monitor_interval: bool | None = None
+    has_been_monitored: bool | None = None
 
 
 class DashboardRead(SQLModel):

@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session
 
 from backend.models.action import ActionEntry, ActionType
-from backend.models.plant import Plant
+from backend.models.plant import ManagedKind, Plant
 from backend.services.dashboard import get_dashboard
 
 
@@ -17,6 +17,17 @@ def _schedule_plant(client: TestClient, plant_id: int, flush_date: str, interval
     client.patch(
         f"/api/plants/{plant_id}/schedule",
         json={"flush_interval_days": interval_days},
+    )
+
+
+def _schedule_cutting(client: TestClient, plant_id: int, monitor_date: str, interval_days: int = 3) -> None:
+    client.post(
+        f"/api/plants/{plant_id}/actions",
+        json={"action_type": "monitor", "performed_at": monitor_date},
+    )
+    client.patch(
+        f"/api/plants/{plant_id}/schedule",
+        json={"monitor_interval_days": interval_days},
     )
 
 
@@ -216,4 +227,83 @@ def test_dashboard_api(client: TestClient, plant: dict) -> None:
     assert data["due_today"][0]["due_date"] == "2026-07-05"
     assert data["due_today"][0]["has_flush_interval"] is True
     assert data["due_today"][0]["has_been_flushed"] is True
+    assert data["needs_attention"] == []
+
+
+def test_cutting_never_monitored_no_interval_appears_needs_attention(session: Session) -> None:
+    session.add(Plant(name="Pothos cutting", kind=ManagedKind.CUTTING, next_monitor_date=None))
+    session.commit()
+
+    dashboard = get_dashboard(session, reference_date=date(2026, 7, 5))
+
+    assert dashboard.overdue == []
+    assert dashboard.due_today == []
+    assert len(dashboard.needs_attention) == 1
+    assert dashboard.needs_attention[0].plant_name == "Pothos cutting"
+    assert dashboard.needs_attention[0].task == "monitor"
+    assert dashboard.needs_attention[0].has_monitor_interval is False
+    assert dashboard.needs_attention[0].has_been_monitored is False
+
+
+def test_cutting_overdue_monitor_task(session: Session) -> None:
+    cutting = Plant(
+        name="Monstera cutting",
+        kind=ManagedKind.CUTTING,
+        next_monitor_date=date(2026, 6, 28),
+        monitor_interval_days=3,
+    )
+    session.add(cutting)
+    session.commit()
+    session.add(
+        ActionEntry(
+            plant_id=cutting.id,
+            action_type=ActionType.MONITOR,
+            performed_at=date(2026, 6, 25),
+        )
+    )
+    session.commit()
+
+    dashboard = get_dashboard(session, reference_date=date(2026, 7, 5))
+
+    assert len(dashboard.overdue) == 1
+    assert dashboard.overdue[0].task == "monitor"
+    assert dashboard.overdue[0].plant_name == "Monstera cutting"
+    assert dashboard.overdue[0].has_been_monitored is True
+
+
+def test_cutting_excluded_from_flush_tasks(session: Session) -> None:
+    session.add(
+        Plant(
+            name="Basil cutting",
+            kind=ManagedKind.CUTTING,
+            next_monitor_date=date(2026, 7, 12),
+            monitor_interval_days=3,
+        )
+    )
+    session.commit()
+
+    dashboard = get_dashboard(session, reference_date=date(2026, 7, 5))
+
+    assert dashboard.overdue == []
+    assert dashboard.due_today == []
+    assert dashboard.needs_attention == []
+
+
+def test_mixed_flush_and_monitor_dashboard_api(client: TestClient, plant: dict) -> None:
+    cutting = client.post("/api/plants", json={"name": "Pothos cutting", "kind": "cutting"}).json()
+    _schedule_plant(client, plant["id"], "2026-06-20")
+    _schedule_cutting(client, cutting["id"], "2026-07-02")
+
+    with patch("backend.services.dashboard.date") as mock_date:
+        mock_date.today.return_value = date(2026, 7, 5)
+        response = client.get("/api/dashboard")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["overdue"]) == 1
+    assert data["overdue"][0]["plant_name"] == "Test Plant"
+    assert data["overdue"][0]["task"] == "flush"
+    assert len(data["due_today"]) == 1
+    assert data["due_today"][0]["plant_name"] == "Pothos cutting"
+    assert data["due_today"][0]["task"] == "monitor"
     assert data["needs_attention"] == []

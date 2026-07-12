@@ -1,6 +1,12 @@
 import { api } from "./client";
+import type { ManagedKind } from "./plants";
 
-export type ActionType = "flush" | "reservoir_refill" | "other";
+export type ActionType =
+  | "flush"
+  | "reservoir_refill"
+  | "monitor"
+  | "water_change"
+  | "other";
 
 export type ActionEntry = {
   id: number;
@@ -20,7 +26,19 @@ export type ActionCreate = {
 export const ACTION_TYPE_LABELS: Record<ActionType, string> = {
   flush: "Flush",
   reservoir_refill: "Reservoir refill",
+  monitor: "Monitor",
+  water_change: "Water change",
   other: "Other",
+};
+
+export const ACTION_TYPES_BY_KIND: Record<ManagedKind, ActionType[]> = {
+  semi_hydro: ["flush", "reservoir_refill", "other"],
+  cutting: ["monitor", "water_change", "other"],
+};
+
+export const DEFAULT_ACTION_TYPE_BY_KIND: Record<ManagedKind, ActionType> = {
+  semi_hydro: "flush",
+  cutting: "monitor",
 };
 
 export async function fetchActions(plantId: number): Promise<ActionEntry[]> {

@@ -63,3 +63,48 @@ def test_delete_plant_cascades_notes_and_actions(client: TestClient, plant: dict
 
     response = client.delete(f"/api/plants/{plant['id']}")
     assert response.status_code == 204
+
+
+def test_cutting_rejects_flush_action(client: TestClient, cutting: dict) -> None:
+    response = client.post(
+        f"/api/plants/{cutting['id']}/actions",
+        json={"action_type": "flush", "performed_at": "2026-07-01"},
+    )
+    assert response.status_code == 422
+
+
+def test_cutting_rejects_reservoir_refill_action(client: TestClient, cutting: dict) -> None:
+    response = client.post(
+        f"/api/plants/{cutting['id']}/actions",
+        json={"action_type": "reservoir_refill", "performed_at": "2026-07-01"},
+    )
+    assert response.status_code == 422
+
+
+def test_semi_hydro_rejects_monitor_action(client: TestClient, plant: dict) -> None:
+    response = client.post(
+        f"/api/plants/{plant['id']}/actions",
+        json={"action_type": "monitor", "performed_at": "2026-07-01"},
+    )
+    assert response.status_code == 422
+
+
+def test_semi_hydro_rejects_water_change_action(client: TestClient, plant: dict) -> None:
+    response = client.post(
+        f"/api/plants/{plant['id']}/actions",
+        json={"action_type": "water_change", "performed_at": "2026-07-01"},
+    )
+    assert response.status_code == 422
+
+
+def test_cutting_allows_monitor_and_water_change_actions(client: TestClient, cutting: dict) -> None:
+    monitor = client.post(
+        f"/api/plants/{cutting['id']}/actions",
+        json={"action_type": "monitor", "performed_at": "2026-07-01"},
+    )
+    water_change = client.post(
+        f"/api/plants/{cutting['id']}/actions",
+        json={"action_type": "water_change", "performed_at": "2026-07-02"},
+    )
+    assert monitor.status_code == 201
+    assert water_change.status_code == 201

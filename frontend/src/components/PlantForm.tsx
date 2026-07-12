@@ -1,8 +1,10 @@
 import { type FormEvent, useState } from "react";
-import type { PlantCreate } from "../api/plants";
+import type { ManagedKind, PlantCreate } from "../api/plants";
+import { KIND_LABELS } from "../api/plants";
 
 type PlantFormValues = {
   name: string;
+  kind: ManagedKind;
   species: string;
   location: string;
   description: string;
@@ -11,17 +13,25 @@ type PlantFormValues = {
 type PlantFormProps = {
   initialValues?: Partial<PlantFormValues>;
   submitLabel: string;
+  showKindSelector?: boolean;
   onSubmit: (values: PlantCreate) => Promise<void>;
   onCancel?: () => void;
+};
+
+const DESCRIPTION_PLACEHOLDER: Record<ManagedKind, string> = {
+  semi_hydro: "Setup, pot type, nutrient mix, general notes...",
+  cutting: "Jar size, rooting hormone, water change notes...",
 };
 
 export function PlantForm({
   initialValues,
   submitLabel,
+  showKindSelector = false,
   onSubmit,
   onCancel,
 }: PlantFormProps) {
   const [name, setName] = useState(initialValues?.name ?? "");
+  const [kind, setKind] = useState<ManagedKind>(initialValues?.kind ?? "semi_hydro");
   const [species, setSpecies] = useState(initialValues?.species ?? "");
   const [location, setLocation] = useState(initialValues?.location ?? "");
   const [description, setDescription] = useState(initialValues?.description ?? "");
@@ -38,12 +48,16 @@ export function PlantForm({
     setError(null);
     setIsSubmitting(true);
     try {
-      await onSubmit({
+      const payload: PlantCreate = {
         name: name.trim(),
         species: species.trim() || null,
         location: location.trim() || null,
         description: description.trim() || null,
-      });
+      };
+      if (showKindSelector) {
+        payload.kind = kind;
+      }
+      await onSubmit(payload);
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -53,6 +67,26 @@ export function PlantForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {showKindSelector && (
+        <div>
+          <label htmlFor="kind" className="mb-1 block text-sm font-medium text-slate-700">
+            Type
+          </label>
+          <select
+            id="kind"
+            value={kind}
+            onChange={(event) => setKind(event.target.value as ManagedKind)}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+          >
+            {(Object.keys(KIND_LABELS) as ManagedKind[]).map((option) => (
+              <option key={option} value={option}>
+                {KIND_LABELS[option]}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div>
         <label htmlFor="name" className="mb-1 block text-sm font-medium text-slate-700">
           Name
@@ -102,7 +136,7 @@ export function PlantForm({
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           rows={4}
-          placeholder="Setup, pot type, nutrient mix, general notes..."
+          placeholder={DESCRIPTION_PLACEHOLDER[showKindSelector ? kind : initialValues?.kind ?? "semi_hydro"]}
           className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
         />
       </div>

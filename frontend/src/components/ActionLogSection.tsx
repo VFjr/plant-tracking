@@ -1,24 +1,33 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import {
   ACTION_TYPE_LABELS,
+  ACTION_TYPES_BY_KIND,
+  DEFAULT_ACTION_TYPE_BY_KIND,
   type ActionType,
   createAction,
   deleteAction,
   fetchActions,
 } from "../api/actions";
+import type { ManagedKind } from "../api/plants";
 import { formatDate, todayIsoDate } from "../lib/dates";
 
 type ActionLogSectionProps = {
   plantId: number;
+  kind: ManagedKind;
 };
 
-export function ActionLogSection({ plantId }: ActionLogSectionProps) {
+export function ActionLogSection({ plantId, kind }: ActionLogSectionProps) {
   const queryClient = useQueryClient();
-  const [actionType, setActionType] = useState<ActionType>("flush");
+  const allowedActionTypes = ACTION_TYPES_BY_KIND[kind];
+  const [actionType, setActionType] = useState<ActionType>(DEFAULT_ACTION_TYPE_BY_KIND[kind]);
   const [performedAt, setPerformedAt] = useState(todayIsoDate());
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setActionType(DEFAULT_ACTION_TYPE_BY_KIND[kind]);
+  }, [kind]);
 
   const { data: actions, isLoading, isError } = useQuery({
     queryKey: ["plants", plantId, "actions"],
@@ -77,7 +86,7 @@ export function ActionLogSection({ plantId }: ActionLogSectionProps) {
             onChange={(event) => setActionType(event.target.value as ActionType)}
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
           >
-            {(Object.keys(ACTION_TYPE_LABELS) as ActionType[]).map((type) => (
+            {allowedActionTypes.map((type) => (
               <option key={type} value={type}>
                 {ACTION_TYPE_LABELS[type]}
               </option>

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { deletePlant, fetchPlant, updatePlant } from "../api/plants";
+import { deletePlant, fetchPlant, KIND_LABELS, updatePlant } from "../api/plants";
 import { ActionLogSection } from "../components/ActionLogSection";
 import { NotesSection } from "../components/NotesSection";
 import { PhotosSection } from "../components/PhotosSection";
@@ -70,7 +70,12 @@ export function PlantDetailPage() {
           <Link to="/plants" className="text-sm font-medium text-emerald-700 hover:underline">
             ← Back to plants
           </Link>
-          <h2 className="mt-2 text-2xl font-semibold">{plant.name}</h2>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <h2 className="text-2xl font-semibold">{plant.name}</h2>
+            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+              {KIND_LABELS[plant.kind]}
+            </span>
+          </div>
           <p className="mt-1 text-sm text-slate-600">
             Added {formatDate(plant.created_at)}
             {wasUpdated(plant.created_at, plant.updated_at) &&
@@ -112,6 +117,7 @@ export function PlantDetailPage() {
             <PlantForm
               initialValues={{
                 name: plant.name,
+                kind: plant.kind,
                 species: plant.species ?? "",
                 location: plant.location ?? "",
                 description: plant.description ?? "",
@@ -126,6 +132,10 @@ export function PlantDetailPage() {
         ) : (
           <dl className="mt-4 space-y-4 text-sm">
             <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <dt className="text-slate-500">Type</dt>
+                <dd className="font-medium text-slate-900">{KIND_LABELS[plant.kind]}</dd>
+              </div>
               <div>
                 <dt className="text-slate-500">Species</dt>
                 <dd className="font-medium text-slate-900">{plant.species || "—"}</dd>
@@ -151,7 +161,7 @@ export function PlantDetailPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <NotesSection plantId={plantId} />
-        <ActionLogSection plantId={plantId} />
+        <ActionLogSection plantId={plantId} kind={plant.kind} />
       </div>
     </section>
   );

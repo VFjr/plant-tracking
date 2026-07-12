@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { fetchPlants } from "../api/plants";
-import { FlushStatusBadge } from "../components/FlushStatusBadge";
+import { fetchPlants, KIND_LABELS } from "../api/plants";
+import { ScheduleStatusBadge } from "../components/FlushStatusBadge";
 
 export function PlantsPage() {
   const { data: plants, isLoading, isError } = useQuery({
@@ -14,13 +14,13 @@ export function PlantsPage() {
       <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">Plants</h2>
-          <p className="mt-1 text-sm text-slate-600">Manage your semi-hydro plants.</p>
+          <p className="mt-1 text-sm text-slate-600">Manage your semi-hydro plants and water cuttings.</p>
         </div>
         <Link
           to="/plants/new"
           className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
         >
-          Add plant
+          Add plant or cutting
         </Link>
       </div>
 
@@ -33,7 +33,7 @@ export function PlantsPage() {
           <p className="p-6 text-sm text-slate-600">
             No plants yet.{" "}
             <Link to="/plants/new" className="font-medium text-emerald-700 hover:underline">
-              Add your first plant
+              Add your first plant or cutting
             </Link>
             .
           </p>
@@ -49,7 +49,15 @@ export function PlantsPage() {
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="font-medium text-slate-900">{plant.name}</p>
-                      <FlushStatusBadge nextFlushDate={plant.next_flush_date} />
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                        {KIND_LABELS[plant.kind]}
+                      </span>
+                      <ScheduleStatusBadge
+                        kind={plant.kind}
+                        nextDueDate={
+                          plant.kind === "cutting" ? plant.next_monitor_date : plant.next_flush_date
+                        }
+                      />
                     </div>
                     <p className="text-sm text-slate-600">
                       {[plant.species, plant.location].filter(Boolean).join(" · ") || "No details yet"}

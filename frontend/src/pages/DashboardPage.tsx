@@ -8,6 +8,23 @@ import { formatDate, formatDaysAgo, todayIsoDate } from "../lib/dates";
 type TaskVariant = "overdue" | "due_today" | "needs_attention";
 
 function taskDetail(task: DashboardTask, variant: TaskVariant): string {
+  if (task.task === "monitor") {
+    if (variant === "needs_attention") {
+      if (!task.has_been_monitored) {
+        return task.has_monitor_interval
+          ? "Needs first monitor"
+          : "Needs first monitor · No monitor interval set";
+      }
+      return "Needs monitor interval";
+    }
+
+    if (variant === "overdue") {
+      return `Monitor overdue · ${formatDaysAgo(task.due_date)} · due ${formatDate(task.due_date)}`;
+    }
+
+    return `Monitor due today · due ${formatDate(task.due_date)}`;
+  }
+
   if (variant === "needs_attention") {
     if (!task.has_been_flushed) {
       return task.has_flush_interval
@@ -24,15 +41,19 @@ function taskDetail(task: DashboardTask, variant: TaskVariant): string {
   return `Flush due today · due ${formatDate(task.due_date)}`;
 }
 
+function taskActionLabel(task: DashboardTask): string {
+  return task.task === "monitor" ? "Log monitor" : "Log flush";
+}
+
 function TaskRow({
   task,
   variant,
-  onLogFlush,
+  onLogAction,
   isLogging,
 }: {
   task: DashboardTask;
   variant: TaskVariant;
-  onLogFlush: (plantId: number) => void;
+  onLogAction: (task: DashboardTask) => void;
   isLogging: boolean;
 }) {
   const detail = taskDetail(task, variant);
@@ -49,11 +70,11 @@ function TaskRow({
       </div>
       <button
         type="button"
-        onClick={() => onLogFlush(task.plant_id)}
+        onClick={() => onLogAction(task)}
         disabled={isLogging}
         className="shrink-0 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
       >
-        {isLogging ? "Logging..." : "Log flush"}
+        {isLogging ? "Logging..." : taskActionLabel(task)}
       </button>
     </li>
   );
@@ -64,14 +85,14 @@ function TaskSection({
   description,
   tasks,
   variant,
-  onLogFlush,
+  onLogAction,
   loggingPlantId,
 }: {
   title: string;
   description: string;
   tasks: DashboardTask[];
   variant: TaskVariant;
-  onLogFlush: (plantId: number) => void;
+  onLogAction: (task: DashboardTask) => void;
   loggingPlantId: number | null;
 }) {
   if (tasks.length === 0) {
@@ -100,10 +121,10 @@ function TaskSection({
       <ul className="divide-y divide-slate-200">
         {tasks.map((task) => (
           <TaskRow
-            key={task.plant_id}
+            key={`${task.plant_id}-${task.task}`}
             task={task}
             variant={variant}
-            onLogFlush={onLogFlush}
+            onLogAction={onLogAction}
             isLogging={loggingPlantId === task.plant_id}
           />
         ))}
@@ -121,20 +142,20 @@ export function DashboardPage() {
     queryFn: fetchDashboard,
   });
 
-  const logFlushMutation = useMutation({
-    mutationFn: (plantId: number) =>
-      createAction(plantId, {
-        action_type: "flush",
+  const logActionMutation = useMutation({
+    mutationFn: (task: DashboardTask) =>
+      createAction(task.plant_id, {
+        action_type: task.task === "monitor" ? "monitor" : "flush",
         performed_at: todayIsoDate(),
       }),
-    onMutate: (plantId) => {
-      setLoggingPlantId(plantId);
+    onMutate: (task) => {
+      setLoggingPlantId(task.plant_id);
     },
-    onSuccess: (_action, plantId) => {
+    onSuccess: (_action, task) => {
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["plants"] });
-      queryClient.invalidateQueries({ queryKey: ["plants", plantId] });
-      queryClient.invalidateQueries({ queryKey: ["plants", plantId, "actions"] });
+      queryClient.invalidateQueries({ queryKey: ["plants", task.plant_id] });
+      queryClient.invalidateQueries({ queryKey: ["plants", task.plant_id, "actions"] });
     },
     onSettled: () => {
       setLoggingPlantId(null);
@@ -156,7 +177,7 @@ export function DashboardPage() {
       <div>
         <h2 className="text-lg font-semibold">Dashboard</h2>
         <p className="mt-1 text-sm text-slate-600">
-          Flush tasks that are overdue, due today, or still need setup.
+          Tasks for your plants and cuttings that are overdue, due today, or still need setup.
         </p>
       </div>
 
@@ -178,26 +199,26 @@ export function DashboardPage() {
         <>
           <TaskSection
             title="Overdue"
-            description="These flushes were due before today."
+            description="These tasks were due before today."
             tasks={overdue}
             variant="overdue"
-            onLogFlush={(plantId) => logFlushMutation.mutate(plantId)}
+            onLogAction={(task) => logActionMutation.mutate(task)}
             loggingPlantId={loggingPlantId}
           />
           <TaskSection
             title="Due today"
-            description="These flushes are due today."
+            description="These tasks are due today."
             tasks={dueToday}
             variant="due_today"
-            onLogFlush={(plantId) => logFlushMutation.mutate(plantId)}
+            onLogAction={(task) => logActionMutation.mutate(task)}
             loggingPlantId={loggingPlantId}
           />
           <TaskSection
             title="Needs attention"
-            description="These plants still need a first flush or a flush interval."
+            description="These plants and cuttings still need a first action or a schedule interval."
             tasks={needsAttention}
             variant="needs_attention"
-            onLogFlush={(plantId) => logFlushMutation.mutate(plantId)}
+            onLogAction={(task) => logActionMutation.mutate(task)}
             loggingPlantId={loggingPlantId}
           />
         </>

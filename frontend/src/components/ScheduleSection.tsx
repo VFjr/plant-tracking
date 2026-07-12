@@ -1,23 +1,64 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useState } from "react";
-import { updatePlantSchedule, type Plant } from "../api/plants";
-import { FlushStatusBadge } from "./FlushStatusBadge";
-import { formatDate, getFlushStatus } from "../lib/schedule";
+import { updatePlantSchedule, type ManagedKind, type Plant } from "../api/plants";
+import { ScheduleStatusBadge } from "./FlushStatusBadge";
+import { formatDate, getScheduleStatus } from "../lib/schedule";
 
 type ScheduleSectionProps = {
   plant: Plant;
 };
 
+const SCHEDULE_COPY: Record<
+  ManagedKind,
+  {
+    title: string;
+    lastLabel: string;
+    nextLabel: string;
+    intervalId: string;
+    helpText: string;
+    lastDate: (plant: Plant) => string | null;
+    nextDate: (plant: Plant) => string | null;
+    intervalDays: (plant: Plant) => number | null;
+    scheduleField: "flush_interval_days" | "monitor_interval_days";
+  }
+> = {
+  semi_hydro: {
+    title: "Flush schedule",
+    lastLabel: "Last flushed",
+    nextLabel: "Next flush",
+    intervalId: "flush-interval",
+    helpText:
+      "Last flushed is taken from your flush actions. Logging a new flush advances the next due date when an interval is set.",
+    lastDate: (plant) => plant.last_flush_date,
+    nextDate: (plant) => plant.next_flush_date,
+    intervalDays: (plant) => plant.flush_interval_days,
+    scheduleField: "flush_interval_days",
+  },
+  cutting: {
+    title: "Monitoring schedule",
+    lastLabel: "Last monitored",
+    nextLabel: "Next monitor",
+    intervalId: "monitor-interval",
+    helpText:
+      "Last monitored is taken from your monitor actions. Logging a new monitor advances the next due date when an interval is set.",
+    lastDate: (plant) => plant.last_monitor_date,
+    nextDate: (plant) => plant.next_monitor_date,
+    intervalDays: (plant) => plant.monitor_interval_days,
+    scheduleField: "monitor_interval_days",
+  },
+};
+
 export function ScheduleSection({ plant }: ScheduleSectionProps) {
   const queryClient = useQueryClient();
+  const copy = SCHEDULE_COPY[plant.kind];
   const [intervalDays, setIntervalDays] = useState(
-    plant.flush_interval_days?.toString() ?? "",
+    copy.intervalDays(plant)?.toString() ?? "",
   );
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setIntervalDays(plant.flush_interval_days?.toString() ?? "");
-  }, [plant.flush_interval_days]);
+    setIntervalDays(copy.intervalDays(plant)?.toString() ?? "");
+  }, [plant.kind, plant.flush_interval_days, plant.monitor_interval_days]);
 
   const mutation = useMutation({
     mutationFn: (schedule: Parameters<typeof updatePlantSchedule>[1]) =>
@@ -26,7 +67,8 @@ export function ScheduleSection({ plant }: ScheduleSectionProps) {
       queryClient.setQueryData(["plants", plant.id], updated);
       queryClient.invalidateQueries({ queryKey: ["plants"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      setIntervalDays(updated.flush_interval_days?.toString() ?? "");
+      const updatedCopy = SCHEDULE_COPY[updated.kind];
+      setIntervalDays(updatedCopy.intervalDays(updated)?.toString() ?? "");
       setError(null);
     },
     onError: () => setError("Failed to save schedule."),
@@ -44,38 +86,39 @@ export function ScheduleSection({ plant }: ScheduleSectionProps) {
         setError("Interval must be a whole number of at least 1 day.");
         return;
       }
-      payload.flush_interval_days = parsed;
+      payload[copy.scheduleField] = parsed;
     } else {
-      payload.flush_interval_days = null;
+      payload[copy.scheduleField] = null;
     }
 
     await mutation.mutateAsync(payload);
   }
 
-  const status = getFlushStatus(plant.next_flush_date);
+  const nextDueDate = copy.nextDate(plant);
+  const status = getScheduleStatus(nextDueDate);
 
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-          Flush schedule
+          {copy.title}
         </h3>
-        <FlushStatusBadge nextFlushDate={plant.next_flush_date} />
+        <ScheduleStatusBadge kind={plant.kind} nextDueDate={nextDueDate} />
       </div>
 
       <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
         <div>
-          <dt className="text-slate-500">Last flushed</dt>
+          <dt className="text-slate-500">{copy.lastLabel}</dt>
           <dd className="font-medium text-slate-900">
-            {plant.last_flush_date ? formatDate(plant.last_flush_date) : "—"}
+            {copy.lastDate(plant) ? formatDate(copy.lastDate(plant)!) : "—"}
           </dd>
         </div>
         <div>
-          <dt className="text-slate-500">Next flush</dt>
+          <dt className="text-slate-500">{copy.nextLabel}</dt>
           <dd className="font-medium text-slate-900">
-            {plant.next_flush_date ? (
+            {nextDueDate ? (
               <>
-                {formatDate(plant.next_flush_date)}
+                {formatDate(nextDueDate)}
                 {status === "overdue" && " (overdue)"}
                 {status === "due_today" && " (today)"}
               </>
@@ -88,11 +131,11 @@ export function ScheduleSection({ plant }: ScheduleSectionProps) {
 
       <form onSubmit={handleSubmit} className="mt-4 space-y-3">
         <div>
-          <label htmlFor="flush-interval" className="mb-1 block text-sm font-medium text-slate-700">
+          <label htmlFor={copy.intervalId} className="mb-1 block text-sm font-medium text-slate-700">
             Interval (days)
           </label>
           <input
-            id="flush-interval"
+            id={copy.intervalId}
             type="number"
             min={1}
             value={intervalDays}
@@ -111,10 +154,7 @@ export function ScheduleSection({ plant }: ScheduleSectionProps) {
         </button>
       </form>
 
-      <p className="mt-4 text-xs text-slate-500">
-        Last flushed is taken from your flush actions. Logging a new flush advances the next due
-        date when an interval is set.
-      </p>
+      <p className="mt-4 text-xs text-slate-500">{copy.helpText}</p>
     </section>
   );
 }
