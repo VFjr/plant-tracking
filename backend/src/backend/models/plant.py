@@ -4,7 +4,7 @@ from enum import Enum
 from pydantic import field_validator
 from sqlmodel import Field, SQLModel
 
-from backend.models.relations import utc_datetime_column
+from backend.models.relations import enum_column, utc_datetime_column
 
 
 class ManagedKind(str, Enum):
@@ -32,7 +32,10 @@ def _strip_optional_name(value: str | None) -> str | None:
 class Plant(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     name: str = Field(min_length=1)
-    kind: ManagedKind = Field(default=ManagedKind.SEMI_HYDRO)
+    kind: ManagedKind = Field(
+        default=ManagedKind.SEMI_HYDRO,
+        sa_column=enum_column(ManagedKind, server_default="semi_hydro"),
+    )
     species: str | None = None
     location: str | None = None
     description: str | None = None

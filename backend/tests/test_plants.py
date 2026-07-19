@@ -1,4 +1,6 @@
 from fastapi.testclient import TestClient
+from sqlalchemy import text
+from sqlmodel import Session
 
 
 def test_create_and_get_plant(client: TestClient) -> None:
@@ -119,3 +121,21 @@ def test_update_plant_does_not_change_kind(client: TestClient) -> None:
     response = client.patch(f"/api/plants/{plant_id}", json={"name": "Renamed Cutting"})
     assert response.status_code == 200
     assert response.json()["kind"] == "cutting"
+
+
+def test_list_plants_reads_kind_values_from_db(client: TestClient, session: Session) -> None:
+    """Regression: Alembic stores enum values (semi_hydro), not member names (SEMI_HYDRO)."""
+    session.execute(
+        text(
+            "INSERT INTO plant (name, kind, created_at, updated_at) "
+            "VALUES ('From migration', 'semi_hydro', '2026-01-01T00:00:00', '2026-01-01T00:00:00')"
+        )
+    )
+    session.commit()
+
+    response = client.get("/api/plants")
+    assert response.status_code == 200
+    plants = response.json()
+    assert len(plants) == 1
+    assert plants[0]["name"] == "From migration"
+    assert plants[0]["kind"] == "semi_hydro"
