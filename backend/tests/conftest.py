@@ -39,6 +39,13 @@ def plant_fixture(client: TestClient) -> dict:
     return response.json()
 
 
+@pytest.fixture(name="cutting")
+def cutting_fixture(client: TestClient) -> dict:
+    response = client.post("/api/plants", json={"name": "Test Cutting", "kind": "cutting"})
+    assert response.status_code == 201
+    return response.json()
+
+
 @pytest.fixture(name="client")
 def client_fixture(session: Session) -> Generator[TestClient]:
     def get_session_override() -> Generator[Session]:

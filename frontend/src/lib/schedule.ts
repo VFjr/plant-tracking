@@ -1,20 +1,30 @@
 import { todayIsoDate } from "./dates";
 
-export type FlushStatus = "overdue" | "due_today" | null;
+export type ScheduleStatus = "overdue" | "due_today" | null;
 
 export { formatDate, formatDateTime, todayIsoDate } from "./dates";
 
-export function getFlushStatus(nextFlushDate: string | null | undefined): FlushStatus {
-  if (!nextFlushDate) {
+export function getScheduleStatus(nextDueDate: string | null | undefined): ScheduleStatus {
+  if (!nextDueDate) {
     return null;
   }
 
   const today = todayIsoDate();
-  if (nextFlushDate < today) {
+  if (nextDueDate < today) {
     return "overdue";
   }
-  if (nextFlushDate === today) {
+  if (nextDueDate === today) {
     return "due_today";
   }
   return null;
+}
+
+/** @deprecated Use getScheduleStatus */
+export function getFlushStatus(nextFlushDate: string | null | undefined): ScheduleStatus {
+  return getScheduleStatus(nextFlushDate);
+}
+
+/** @deprecated Use getScheduleStatus */
+export function getMonitorStatus(nextMonitorDate: string | null | undefined): ScheduleStatus {
+  return getScheduleStatus(nextMonitorDate);
 }

@@ -10,7 +10,15 @@ from backend.models.relations import plant_foreign_key, utc_datetime_column
 class ActionType(str, Enum):
     FLUSH = "flush"
     RESERVOIR_REFILL = "reservoir_refill"
+    MONITOR = "monitor"
+    WATER_CHANGE = "water_change"
     OTHER = "other"
+
+
+SEMI_HYDRO_ACTION_TYPES = frozenset(
+    {ActionType.FLUSH, ActionType.RESERVOIR_REFILL, ActionType.OTHER}
+)
+CUTTING_ACTION_TYPES = frozenset({ActionType.MONITOR, ActionType.WATER_CHANGE, ActionType.OTHER})
 
 
 class ActionEntry(SQLModel, table=True):

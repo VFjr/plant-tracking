@@ -18,13 +18,16 @@ export function PlantNewPage() {
   return (
     <section className="mx-auto max-w-xl space-y-6">
       <div>
-        <h2 className="text-lg font-semibold">Add plant</h2>
-        <p className="mt-1 text-sm text-slate-600">Create a new plant entry.</p>
+        <h2 className="text-lg font-semibold">Add plant or cutting</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Create a new semi-hydro plant or water cutting entry.
+        </p>
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <PlantForm
-          submitLabel="Create plant"
+          showKindSelector
+          submitLabel="Create entry"
           onSubmit={async (values) => {
             await mutation.mutateAsync(values);
           }}

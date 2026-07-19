@@ -1,12 +1,34 @@
-import { getFlushStatus } from "../lib/schedule";
+import type { ManagedKind } from "../api/plants";
+import { getScheduleStatus } from "../lib/schedule";
 
-export function FlushStatusBadge({ nextFlushDate }: { nextFlushDate: string | null }) {
-  const status = getFlushStatus(nextFlushDate);
+const STATUS_LABELS: Record<
+  ManagedKind,
+  { overdue: string; dueToday: string }
+> = {
+  semi_hydro: {
+    overdue: "Flush overdue",
+    dueToday: "Flush due today",
+  },
+  cutting: {
+    overdue: "Monitor overdue",
+    dueToday: "Monitor due today",
+  },
+};
+
+export function ScheduleStatusBadge({
+  kind,
+  nextDueDate,
+}: {
+  kind: ManagedKind;
+  nextDueDate: string | null;
+}) {
+  const status = getScheduleStatus(nextDueDate);
+  const labels = STATUS_LABELS[kind];
 
   if (status === "overdue") {
     return (
       <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
-        Flush overdue
+        {labels.overdue}
       </span>
     );
   }
@@ -14,10 +36,15 @@ export function FlushStatusBadge({ nextFlushDate }: { nextFlushDate: string | nu
   if (status === "due_today") {
     return (
       <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-        Flush due today
+        {labels.dueToday}
       </span>
     );
   }
 
   return null;
+}
+
+/** @deprecated Use ScheduleStatusBadge */
+export function FlushStatusBadge({ nextFlushDate }: { nextFlushDate: string | null }) {
+  return <ScheduleStatusBadge kind="semi_hydro" nextDueDate={nextFlushDate} />;
 }

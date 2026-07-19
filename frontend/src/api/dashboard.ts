@@ -3,10 +3,12 @@ import { api } from "./client";
 export type DashboardTask = {
   plant_id: number;
   plant_name: string;
-  task: "flush";
+  task: "flush" | "monitor";
   due_date: string;
-  has_flush_interval: boolean;
-  has_been_flushed: boolean;
+  has_flush_interval?: boolean | null;
+  has_been_flushed?: boolean | null;
+  has_monitor_interval?: boolean | null;
+  has_been_monitored?: boolean | null;
 };
 
 export type Dashboard = {

@@ -13,7 +13,7 @@ export function Layout() {
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-              Semi-Hydro
+              Plants & Cuttings
             </p>
             <h1 className="text-xl font-semibold">Plant Tracker</h1>
           </div>
